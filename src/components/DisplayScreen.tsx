@@ -47,7 +47,7 @@ export function DisplayScreen({
     lock.current = now;
     setFlash(true);
     window.setTimeout(() => setFlash(false), 90);
-    send({ type: "tap", deviceId });
+    send({ type: "tap", deviceId, frameStartedAt: snapshot.frameStartedAt });
   };
 
   return (

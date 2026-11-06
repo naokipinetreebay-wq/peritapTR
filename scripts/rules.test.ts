@@ -13,7 +13,7 @@ function matches(digits: Record<string, number>, center: number) {
 }
 
 function fakeSocket(): ClientSocket {
-  return { readyState: WebSocket.OPEN, send() {} } as ClientSocket;
+  return { readyState: WebSocket.OPEN, send() {} } as unknown as ClientSocket;
 }
 
 const ids = ["a", "b", "c"];
@@ -129,4 +129,47 @@ const rejected = room.addDisplay(fakeSocket(), "h");
 assert(!rejected.ok, "seventh peripheral is rejected");
 room.destroy();
 
-console.log("peritap rules ok");
+function lateTap(): Promise<void> {
+  const late = new Room("LATE01");
+  late.addController(fakeSocket());
+  late.addDisplay(fakeSocket(), "a");
+  late.addDisplay(fakeSocket(), "b");
+  late.updateConfig({ level: "easy", intervalSeconds: 1, durationSeconds: 20 });
+  late.config.intervalSeconds = 0.2;
+  late.config.durationSeconds = 2;
+  late.start();
+  const snap = late.snapshot();
+  const seen = snap.frameStartedAt;
+  const hit = snap.displays.find((d) => d.digit === snap.centerDigit);
+  if (!snap.scored || seen == null || !hit) {
+    late.destroy();
+    return Promise.reject(new Error("late-tap setup did not produce a scored frame"));
+  }
+  late.tap(hit.id, seen, seen + 200 + 1200 + 50);
+  assert(late.snapshot().correct === 0, "a tap after the grace period does not score");
+  return new Promise((resolve, reject) => {
+    setTimeout(() => {
+      try {
+        const missed = late.snapshot().miss;
+        assert(missed >= 1, "an unanswered question becomes a miss");
+        late.tap(hit.id, seen);
+        const after = late.snapshot();
+        assert(after.correct === 1 && after.miss === missed - 1, "a late tap on the number still showing counts");
+        late.tap(hit.id, seen);
+        assert(late.snapshot().correct === 1, "the same frame is not scored twice");
+        late.destroy();
+        resolve();
+      } catch (error) {
+        late.destroy();
+        reject(error);
+      }
+    }, 350);
+  });
+}
+
+lateTap()
+  .then(() => console.log("peritap rules ok"))
+  .catch((error) => {
+    console.error(error);
+    process.exit(1);
+  });

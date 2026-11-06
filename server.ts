@@ -139,7 +139,7 @@ app.prepare().then(() => {
             if (role === "controller") r.stop();
             break;
           case "tap":
-            if (role === "display" && msg.deviceId === deviceId) r.tap(deviceId);
+            if (role === "display" && msg.deviceId === deviceId) r.tap(deviceId, msg.frameStartedAt);
             break;
           case "ping":
             r.touch();

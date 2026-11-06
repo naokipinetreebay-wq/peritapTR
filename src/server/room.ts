@@ -19,6 +19,8 @@ import {
 
 const CODE_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 const ROOM_TTL_MS = 90 * 60 * 1000;
+/** 数字が消えたあとも、見ていたコマへのタップを受け付ける。通信の遅れ分。 */
+const TAP_GRACE_MS = 1200;
 
 function randomCode(length = 6): string {
   let out = "";
@@ -66,6 +68,8 @@ export class Room {
   private runIntervalMs = 1000;
   private digits: Record<string, number> = {};
   private judged = false;
+  private tappedFrames = new Set<number>();
+  private missedFrames = new Set<number>();
   private timer: ReturnType<typeof setTimeout> | null = null;
 
   constructor(code: string) {
@@ -174,6 +178,8 @@ export class Room {
     this.wrong = 0;
     this.miss = 0;
     this.asked = 0;
+    this.tappedFrames.clear();
+    this.missedFrames.clear();
     this.endsAt = null;
     this.finishedAt = null;
     this.config.running = true;
@@ -192,22 +198,47 @@ export class Room {
     this.digits = {};
     this.frames = [];
     this.frameIndex = -1;
+    this.tappedFrames.clear();
+    this.missedFrames.clear();
     this.judged = true;
     this.touch();
     this.broadcast();
   }
 
-  tap(deviceId: string) {
-    if (!this.config.running || this.judged || this.frameIndex < 0) return;
-    const frame = this.frames[this.frameIndex];
+  tap(deviceId: string, seenAt?: number | null, now = Date.now()) {
+    if (!this.config.running || this.startedAt == null) return;
+    const index = this.indexForSeen(seenAt);
+    if (index == null || this.tappedFrames.has(index)) return;
+    const frame = this.frames[index];
     if (!frame || frame.digits[deviceId] == null) return;
+    const start = this.startedAt + index * this.intervalMs();
+    if (now > start + this.intervalMs() + TAP_GRACE_MS) return;
+    if (this.missedFrames.has(index)) {
+      this.missedFrames.delete(index);
+      this.miss = Math.max(0, this.miss - 1);
+      this.asked = Math.max(0, this.asked - 1);
+    }
     const judgement = judgeTap(frame, deviceId);
     if (judgement === "correct") this.correct += 1;
     else this.wrong += 1;
     if (frame.scored) this.asked += 1;
-    this.judged = true;
+    this.tappedFrames.add(index);
+    if (index === this.frameIndex) this.judged = true;
     this.touch();
     this.broadcast();
+  }
+
+  private indexForSeen(seenAt?: number | null): number | null {
+    if (this.startedAt == null || this.frameIndex < 0) return null;
+    if (seenAt == null) return this.judged ? null : this.frameIndex;
+    const interval = this.intervalMs();
+    if (interval <= 0) return this.judged ? null : this.frameIndex;
+    const index = Math.round((seenAt - this.startedAt) / interval);
+    const start = this.startedAt + index * interval;
+    if (index < 0 || index >= this.frames.length || start !== seenAt) {
+      return this.judged ? null : this.frameIndex;
+    }
+    return index;
   }
 
   private showFrame(index: number) {
@@ -235,11 +266,12 @@ export class Room {
   }
 
   private resolveOpenFrame() {
-    if (this.judged) return;
+    if (this.judged || this.tappedFrames.has(this.frameIndex)) return;
     const frame = this.frames[this.frameIndex];
     if (frame?.scored) {
       this.miss += 1;
       this.asked += 1;
+      this.missedFrames.add(this.frameIndex);
     }
     this.judged = true;
   }

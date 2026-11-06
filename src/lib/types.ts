@@ -48,7 +48,7 @@ export type ClientMessage =
   | { type: "setLabel"; deviceId: string; label: string }
   | { type: "start" }
   | { type: "stop" }
-  | { type: "tap"; deviceId: string }
+  | { type: "tap"; deviceId: string; frameStartedAt?: number | null }
   | { type: "ping" };
 
 export type ServerMessage =
