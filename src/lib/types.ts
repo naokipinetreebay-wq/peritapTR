@@ -39,6 +39,8 @@ export interface RoomSnapshot {
   frameStartedAt: number | null;
   startedAt: number | null;
   finishedAt: number | null;
+  /** 問題開始前の 3・2・1。null のときはカウントダウン中ではない */
+  countdown: number | null;
   serverNow: number;
 }
 

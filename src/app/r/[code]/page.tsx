@@ -87,6 +87,7 @@ export default function ControllerPage() {
         connected={connected}
         send={send}
         clearSessionKeys={[wizardKey]}
+        onStart={() => setView("center")}
       />
       <div className="controller" style={{ paddingTop: 0, gap: 10 }}>
         {snapshot.config.running || snapshot.finishedAt != null ? (

@@ -98,39 +98,73 @@ const five = placementsFor(5).map((slot) => slot.clock);
 assert(five[0] === "12時", "pentagon starts at 12");
 assert(five[1].includes("9時") && five[1].includes("10時"), "pentagon goes counterclockwise");
 
-const room = new Room("TEST01");
-room.addDisplay(fakeSocket(), "a");
-assert(room.snapshot().config.running === false, "one phone does not start");
-room.start();
-assert(room.snapshot().config.running === false, "start waits for two phones");
-room.addDisplay(fakeSocket(), "b");
-room.addDisplay(fakeSocket(), "c");
-room.updateConfig({ level: "easy", intervalSeconds: 1, durationSeconds: 30 });
-room.start();
-assert(room.snapshot().config.running === false, "start waits for the controller");
-room.addController(fakeSocket());
-room.start();
-const live = room.snapshot();
-assert(live.config.running && live.centerDigit != null && live.cue != null, "session started");
-assert(live.displays.every((d) => d.digit != null), "peripherals have digits");
-const hit = live.displays.find((d) => d.digit === live.centerDigit);
-if (live.scored && live.cue === "green" && hit) {
-  room.tap(hit.id);
-  assert(room.snapshot().correct === 1 && room.snapshot().asked === 1, "correct tap scores");
-  assert(room.snapshot().config.running, "one correct answer does not end the session");
-  room.tap(hit.id);
-  assert(room.snapshot().correct === 1, "second tap in the same frame is ignored");
-} else if (hit) {
-  room.tap(hit.id);
-  assert(room.snapshot().wrong === 1 && room.snapshot().correct === 0, "tapping on red is a miss-tap");
+function waitForProblems(room: Room): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const started = Date.now();
+    const tick = () => {
+      const snap = room.snapshot();
+      if (snap.countdown == null && snap.centerDigit != null) {
+        resolve();
+        return;
+      }
+      if (Date.now() - started > 2000) {
+        reject(new Error("problems did not start after countdown"));
+        return;
+      }
+      setTimeout(tick, 5);
+    };
+    tick();
+  });
 }
-for (const extra of ["d", "e", "f", "g"]) room.addDisplay(fakeSocket(), extra);
-const rejected = room.addDisplay(fakeSocket(), "h");
-assert(!rejected.ok, "seventh peripheral is rejected");
-room.destroy();
 
-function lateTap(): Promise<void> {
+async function roomFlow(): Promise<void> {
+  const room = new Room("TEST01");
+  room.countdownMs = 0;
+  room.addDisplay(fakeSocket(), "a");
+  assert(room.snapshot().config.running === false, "one phone does not start");
+  room.start();
+  assert(room.snapshot().config.running === false, "start waits for two phones");
+  room.addDisplay(fakeSocket(), "b");
+  room.addDisplay(fakeSocket(), "c");
+  room.updateConfig({ level: "easy", intervalSeconds: 1, durationSeconds: 30 });
+  room.start();
+  assert(room.snapshot().config.running === false, "start waits for the controller");
+  room.addController(fakeSocket());
+  room.start();
+  const counting = room.snapshot();
+  assert(counting.config.running && counting.countdown === 3, "countdown starts at 3");
+  assert(counting.centerDigit == null, "center has no problem digit during countdown");
+  assert(
+    counting.displays.every((d) => d.digit == null),
+    "peripherals stay blank during countdown"
+  );
+  room.tap("a");
+  assert(room.snapshot().correct === 0 && room.snapshot().wrong === 0, "taps during countdown are ignored");
+  await waitForProblems(room);
+  const live = room.snapshot();
+  assert(live.config.running && live.centerDigit != null && live.cue != null, "session started");
+  assert(live.countdown == null, "countdown cleared when problems begin");
+  assert(live.displays.every((d) => d.digit != null), "peripherals have digits");
+  const hit = live.displays.find((d) => d.digit === live.centerDigit);
+  if (live.scored && live.cue === "green" && hit) {
+    room.tap(hit.id);
+    assert(room.snapshot().correct === 1 && room.snapshot().asked === 1, "correct tap scores");
+    assert(room.snapshot().config.running, "one correct answer does not end the session");
+    room.tap(hit.id);
+    assert(room.snapshot().correct === 1, "second tap in the same frame is ignored");
+  } else if (hit) {
+    room.tap(hit.id);
+    assert(room.snapshot().wrong === 1 && room.snapshot().correct === 0, "tapping on red is a miss-tap");
+  }
+  for (const extra of ["d", "e", "f", "g"]) room.addDisplay(fakeSocket(), extra);
+  const rejected = room.addDisplay(fakeSocket(), "h");
+  assert(!rejected.ok, "seventh peripheral is rejected");
+  room.destroy();
+}
+
+async function lateTap(): Promise<void> {
   const late = new Room("LATE01");
+  late.countdownMs = 0;
   late.addController(fakeSocket());
   late.addDisplay(fakeSocket(), "a");
   late.addDisplay(fakeSocket(), "b");
@@ -138,16 +172,17 @@ function lateTap(): Promise<void> {
   late.config.intervalSeconds = 0.2;
   late.config.durationSeconds = 2;
   late.start();
+  await waitForProblems(late);
   const snap = late.snapshot();
   const seen = snap.frameStartedAt;
   const hit = snap.displays.find((d) => d.digit === snap.centerDigit);
   if (!snap.scored || seen == null || !hit) {
     late.destroy();
-    return Promise.reject(new Error("late-tap setup did not produce a scored frame"));
+    throw new Error("late-tap setup did not produce a scored frame");
   }
   late.tap(hit.id, seen, seen + 200 + 1200 + 50);
   assert(late.snapshot().correct === 0, "a tap after the grace period does not score");
-  return new Promise((resolve, reject) => {
+  await new Promise<void>((resolve, reject) => {
     setTimeout(() => {
       try {
         const missed = late.snapshot().miss;
@@ -167,7 +202,8 @@ function lateTap(): Promise<void> {
   });
 }
 
-lateTap()
+roomFlow()
+  .then(() => lateTap())
   .then(() => console.log("peritap rules ok"))
   .catch((error) => {
     console.error(error);

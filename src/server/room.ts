@@ -21,6 +21,8 @@ const CODE_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 const ROOM_TTL_MS = 90 * 60 * 1000;
 /** 数字が消えたあとも、見ていたコマへのタップを受け付ける。通信の遅れ分。 */
 const TAP_GRACE_MS = 1200;
+const COUNTDOWN_FROM = 3;
+const COUNTDOWN_MS = 1000;
 
 function randomCode(length = 6): string {
   let out = "";
@@ -60,9 +62,12 @@ export class Room {
   /** セッションはこの時刻で終わる。正解が10に達しても終わらない */
   endsAt: number | null = null;
   finishedAt: number | null = null;
+  countdown: number | null = null;
   lastActivity = Date.now();
 
   rng: () => number = Math.random;
+  /** テスト用。本番は 1000ms。 */
+  countdownMs = COUNTDOWN_MS;
   private frames: PlannedFrame[] = [];
   private frameIndex = -1;
   private runIntervalMs = 1000;
@@ -182,16 +187,24 @@ export class Room {
     this.missedFrames.clear();
     this.endsAt = null;
     this.finishedAt = null;
+    this.startedAt = null;
+    this.frameStartedAt = null;
+    this.cue = null;
+    this.centerDigit = null;
+    this.scored = false;
+    this.digits = {};
+    this.judged = true;
     this.config.running = true;
-    this.startedAt = Date.now();
-    this.endsAt = this.startedAt + this.frames.length * this.runIntervalMs;
+    this.countdown = COUNTDOWN_FROM;
     this.touch();
-    this.showFrame(0);
+    this.broadcast();
+    this.timer = setTimeout(() => this.countdownTick(), this.countdownMs);
   }
 
   stop() {
     this.clearTimer();
     this.config.running = false;
+    this.countdown = null;
     this.cue = null;
     this.centerDigit = null;
     this.scored = false;
@@ -206,7 +219,7 @@ export class Room {
   }
 
   tap(deviceId: string, seenAt?: number | null, now = Date.now()) {
-    if (!this.config.running || this.startedAt == null) return;
+    if (!this.config.running || this.countdown != null || this.startedAt == null) return;
     const index = this.indexForSeen(seenAt);
     if (index == null || this.tappedFrames.has(index)) return;
     const frame = this.frames[index];
@@ -239,6 +252,25 @@ export class Room {
       return this.judged ? null : this.frameIndex;
     }
     return index;
+  }
+
+  private countdownTick() {
+    if (!this.config.running || this.countdown == null) return;
+    if (this.countdown <= 1) {
+      this.beginProblems();
+      return;
+    }
+    this.countdown -= 1;
+    this.touch();
+    this.broadcast();
+    this.timer = setTimeout(() => this.countdownTick(), this.countdownMs);
+  }
+
+  private beginProblems() {
+    this.countdown = null;
+    this.startedAt = Date.now();
+    this.endsAt = this.startedAt + this.frames.length * this.intervalMs();
+    this.showFrame(0);
   }
 
   private showFrame(index: number) {
@@ -279,6 +311,7 @@ export class Room {
   private finish() {
     this.clearTimer();
     this.config.running = false;
+    this.countdown = null;
     this.finishedAt = Date.now();
     this.cue = null;
     this.centerDigit = null;
@@ -321,6 +354,7 @@ export class Room {
       frameStartedAt: this.frameStartedAt,
       startedAt: this.startedAt,
       finishedAt: this.finishedAt,
+      countdown: this.config.running ? this.countdown : null,
       serverNow: Date.now(),
     };
   }

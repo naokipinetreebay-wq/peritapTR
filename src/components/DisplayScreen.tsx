@@ -16,6 +16,7 @@ export function DisplayScreen({
   const mine = snapshot.displays.find((d) => d.id === deviceId);
   const done = snapshot.finishedAt != null;
   const running = snapshot.config.running;
+  const countingDown = snapshot.countdown != null;
   const [flash, setFlash] = useState(false);
   const lock = useRef(0);
   const clock = placementsFor(snapshot.displays.length).find((slot) => slot.no === mine?.place)?.clock;
@@ -41,7 +42,7 @@ export function DisplayScreen({
   }, []);
 
   const onTap = () => {
-    if (!running || done) return;
+    if (!running || done || countingDown) return;
     const now = Date.now();
     if (now - lock.current < 200) return;
     lock.current = now;
@@ -64,7 +65,7 @@ export function DisplayScreen({
             <span className="peri-score-denom">/{snapshot.questionTotal}</span>
           </span>
         </span>
-      ) : running ? (
+      ) : countingDown ? null : running ? (
         <span className="peri-digit dark">{mine?.digit ?? ""}</span>
       ) : (
         <span className="peri-wait">

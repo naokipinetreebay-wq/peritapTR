@@ -40,6 +40,8 @@ export function CenterScreen({ snapshot }: { snapshot: RoomSnapshot }) {
             <span className="peri-score-denom">/{snapshot.questionTotal}</span>
           </span>
         </span>
+      ) : snapshot.countdown != null ? (
+        <span className="peri-digit">{snapshot.countdown}</span>
       ) : (
         <span className={`peri-digit ${cue === "red" ? "cue-red" : "cue-green"}`}>
           {snapshot.centerDigit ?? ""}

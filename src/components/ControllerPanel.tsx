@@ -21,11 +21,14 @@ export function ControllerPanel({
   connected,
   send,
   clearSessionKeys,
+  onStart,
 }: {
   snapshot: RoomSnapshot;
   connected: boolean;
   send: (msg: ClientMessage) => void;
   clearSessionKeys?: string[];
+  /** 開始／もう一度の直前。真ん中の画面へ切り替えるなど */
+  onStart?: () => void;
 }) {
   const cfg = snapshot.config;
   const displayUrl = useMemo(() => {
@@ -106,7 +109,10 @@ export function ControllerPanel({
               type="button"
               className="btn primary"
               disabled={!canStart}
-              onClick={() => send({ type: "start" })}
+              onClick={() => {
+                onStart?.();
+                send({ type: "start" });
+              }}
             >
               {snapshot.finishedAt != null ? "もう一度" : "開始"}
             </button>
