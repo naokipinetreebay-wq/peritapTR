@@ -2,7 +2,7 @@ import { WebSocket } from "ws";
 import { buildFrames, judgeTap, randomDigit } from "../src/lib/frames";
 import { placementsFor } from "../src/lib/placement";
 import { Room, type ClientSocket } from "../src/server/room";
-import { plannedRounds, QUESTION_TOTAL } from "../src/lib/types";
+import { gameScore, plannedRounds, QUESTION_TOTAL } from "../src/lib/types";
 
 function assert(cond: unknown, message: string) {
   if (!cond) throw new Error(message);
@@ -83,6 +83,8 @@ assert(excluded === 200, "exclusion loop");
 assert(plannedRounds(30, 1) === 30, "30 seconds at 1 second");
 assert(plannedRounds(20, 3) === 10, "long interval still fits 10 questions");
 assert(plannedRounds(45, 0.5) === 50, "fast interval stops before a five-dud run");
+assert(gameScore(1, 10) === -9, "result is correct minus wrong");
+assert(gameScore(7, 2) === 5, "positive result");
 
 const clocks: Record<number, string[]> = {
   2: ["9時", "3時"],

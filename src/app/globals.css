@@ -228,6 +228,9 @@ button, input, select { font: inherit; }
 .peri-result { display: grid; justify-items: center; gap: 8px; }
 .peri-result-label { font-size: 1.3rem; font-weight: 800; letter-spacing: 0.16em; }
 .peri-score-denom { font-size: 0.42em; opacity: 0.75; }
+.peri-result-break {
+  display: flex; gap: 1.2rem; font-size: 1.15rem; font-weight: 800; letter-spacing: 0.04em; color: #333;
+}
 .peri-wait { display: grid; justify-items: center; gap: 8px; }
 .peri-wait-no { font-family: var(--font-display); font-size: 28vmin; line-height: 0.9; }
 .peri-wait-clock { font-size: 1.4rem; font-weight: 700; color: #333; }

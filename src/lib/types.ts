@@ -92,3 +92,8 @@ export function plannedSeconds(durationSeconds: number, intervalSeconds: number)
   const intervalMs = Math.round(intervalSeconds * 1000);
   return (plannedRounds(durationSeconds, intervalSeconds) * intervalMs) / 1000;
 }
+
+/** 正答 − 誤答。マイナスもあり得る。 */
+export function gameScore(correct: number, wrong: number): number {
+  return correct - wrong;
+}

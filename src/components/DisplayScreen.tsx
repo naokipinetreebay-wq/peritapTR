@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { PeriResult } from "@/components/PeriResult";
 import { placementsFor } from "@/lib/placement";
 import type { ClientMessage, RoomSnapshot } from "@/lib/types";
 
@@ -58,13 +59,7 @@ export function DisplayScreen({
       onPointerDown={onTap}
     >
       {done ? (
-        <span className="peri-result">
-          <span className="peri-result-label">正答</span>
-          <span className="peri-score">
-            {snapshot.correct}
-            <span className="peri-score-denom">/{snapshot.questionTotal}</span>
-          </span>
-        </span>
+        <PeriResult snapshot={snapshot} />
       ) : countingDown ? null : running ? (
         <span className="peri-digit dark">{mine?.digit ?? ""}</span>
       ) : (

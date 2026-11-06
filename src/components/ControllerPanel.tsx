@@ -9,6 +9,7 @@ import {
   MAX_INTERVAL,
   MIN_DURATION,
   MIN_INTERVAL,
+  gameScore,
   plannedSeconds,
   type ClientMessage,
   type Level,
@@ -70,19 +71,17 @@ export function ControllerPanel({
       </header>
 
       <section className="panel">
-        <h2>正答</h2>
-        <p className="time-read">
-          {snapshot.correct}
-          <span className="score-denom">/{snapshot.questionTotal}</span>
-        </p>
+        <h2>結果</h2>
+        <p className="time-read">{gameScore(snapshot.correct, snapshot.wrong)}</p>
         <p className="muted">
           {leftMs != null
             ? `残り ${(leftMs / 1000).toFixed(0)}秒で終了 · `
             : snapshot.finishedAt != null
               ? "制限時間終了 · "
               : ""}
-          正答 {snapshot.correct}/{snapshot.questionTotal} · ミス {snapshot.miss} · お手つき{" "}
-          {snapshot.wrong}
+          正答 {snapshot.correct} · 誤答 {snapshot.wrong}
+          {snapshot.miss > 0 ? ` · ミス ${snapshot.miss}` : ""}
+          {` · 押せる問題 ${snapshot.questionTotal}問`}
         </p>
       </section>
 

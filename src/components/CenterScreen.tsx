@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { PeriResult } from "@/components/PeriResult";
 import type { RoomSnapshot } from "@/lib/types";
 
 function useWakeLock() {
@@ -33,13 +34,7 @@ export function CenterScreen({ snapshot }: { snapshot: RoomSnapshot }) {
   return (
     <div className="peri-center">
       {done ? (
-        <span className="peri-result">
-          <span className="peri-result-label">正答</span>
-          <span className="peri-score">
-            {snapshot.correct}
-            <span className="peri-score-denom">/{snapshot.questionTotal}</span>
-          </span>
-        </span>
+        <PeriResult snapshot={snapshot} />
       ) : snapshot.countdown != null ? (
         <span className="peri-digit">{snapshot.countdown}</span>
       ) : (
