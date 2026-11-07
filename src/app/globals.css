@@ -234,3 +234,12 @@ button, input, select { font: inherit; }
 .peri-wait { display: grid; justify-items: center; gap: 8px; }
 .peri-wait-no { font-family: var(--font-display); font-size: 28vmin; line-height: 0.9; }
 .peri-wait-clock { font-size: 1.4rem; font-weight: 700; color: #333; }
+
+.ad-video {
+  display: block;
+  width: 100%;
+  max-height: 52vh;
+  margin: 8px 0 18px;
+  border-radius: 10px;
+  background: #0a0a0a;
+}
