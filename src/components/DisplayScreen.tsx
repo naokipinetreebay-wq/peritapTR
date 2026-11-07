@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { PeriResult } from "@/components/PeriResult";
 import { placementsFor } from "@/lib/placement";
+import { usePlayView } from "@/lib/playView";
 import type { ClientMessage, RoomSnapshot } from "@/lib/types";
 
 export function DisplayScreen({
@@ -17,7 +18,9 @@ export function DisplayScreen({
   const mine = snapshot.displays.find((d) => d.id === deviceId);
   const done = snapshot.finishedAt != null;
   const running = snapshot.config.running;
-  const countingDown = snapshot.countdown != null;
+  const view = usePlayView(snapshot);
+  const countingDown = view.countdown != null;
+  const digit = view.digitFor(deviceId);
   const [flash, setFlash] = useState(false);
   const lock = useRef(0);
   const clock = placementsFor(snapshot.displays.length).find((slot) => slot.no === mine?.place)?.clock;
@@ -49,7 +52,7 @@ export function DisplayScreen({
     lock.current = now;
     setFlash(true);
     window.setTimeout(() => setFlash(false), 90);
-    send({ type: "tap", deviceId, frameStartedAt: snapshot.frameStartedAt });
+    send({ type: "tap", deviceId, frameStartedAt: view.frameStartedAt });
   };
 
   return (
@@ -61,7 +64,7 @@ export function DisplayScreen({
       {done ? (
         <PeriResult snapshot={snapshot} />
       ) : countingDown ? null : running ? (
-        <span className="peri-digit dark">{mine?.digit ?? ""}</span>
+        <span className="peri-digit dark">{digit ?? ""}</span>
       ) : (
         <span className="peri-wait">
           <span className="peri-wait-no">No.{mine?.place ?? ""}</span>

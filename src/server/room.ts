@@ -13,6 +13,7 @@ import {
   plannedRounds,
   type Cue,
   type DisplayInfo,
+  type PlayPackage,
   type RoomConfig,
   type RoomSnapshot,
 } from "../lib/types";
@@ -63,6 +64,7 @@ export class Room {
   endsAt: number | null = null;
   finishedAt: number | null = null;
   countdown: number | null = null;
+  playPackage: PlayPackage | null = null;
   lastActivity = Date.now();
 
   rng: () => number = Math.random;
@@ -196,6 +198,21 @@ export class Room {
     this.judged = true;
     this.config.running = true;
     this.countdown = COUNTDOWN_FROM;
+    const countdownStartedAt = Date.now();
+    const playStartedAt = countdownStartedAt + COUNTDOWN_FROM * this.countdownMs;
+    this.playPackage = {
+      intervalMs: this.runIntervalMs,
+      countdownMs: this.countdownMs,
+      countdownFrom: COUNTDOWN_FROM,
+      countdownStartedAt,
+      playStartedAt,
+      frames: this.frames.map((frame) => ({
+        cue: frame.cue,
+        center: frame.center,
+        digits: { ...frame.digits },
+        scored: frame.scored,
+      })),
+    };
     this.touch();
     this.broadcast();
     this.timer = setTimeout(() => this.countdownTick(), this.countdownMs);
@@ -205,6 +222,7 @@ export class Room {
     this.clearTimer();
     this.config.running = false;
     this.countdown = null;
+    this.playPackage = null;
     this.cue = null;
     this.centerDigit = null;
     this.scored = false;
@@ -268,7 +286,8 @@ export class Room {
 
   private beginProblems() {
     this.countdown = null;
-    this.startedAt = Date.now();
+    // パッケージに書いた開始時刻に合わせ、端末側再生とサーバ採点の基準を揃える
+    this.startedAt = this.playPackage?.playStartedAt ?? Date.now();
     this.endsAt = this.startedAt + this.frames.length * this.intervalMs();
     this.showFrame(0);
   }
@@ -312,6 +331,7 @@ export class Room {
     this.clearTimer();
     this.config.running = false;
     this.countdown = null;
+    this.playPackage = null;
     this.finishedAt = Date.now();
     this.cue = null;
     this.centerDigit = null;
@@ -355,6 +375,7 @@ export class Room {
       startedAt: this.startedAt,
       finishedAt: this.finishedAt,
       countdown: this.config.running ? this.countdown : null,
+      playPackage: this.config.running ? this.playPackage : null,
       serverNow: Date.now(),
     };
   }

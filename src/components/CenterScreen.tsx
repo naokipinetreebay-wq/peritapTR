@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import { PeriResult } from "@/components/PeriResult";
+import { usePlayView } from "@/lib/playView";
 import type { RoomSnapshot } from "@/lib/types";
 
 function useWakeLock() {
@@ -29,17 +30,18 @@ function useWakeLock() {
 export function CenterScreen({ snapshot }: { snapshot: RoomSnapshot }) {
   useWakeLock();
   const done = snapshot.finishedAt != null;
-  const cue = snapshot.cue;
+  const view = usePlayView(snapshot);
+  const cue = view.cue;
 
   return (
     <div className="peri-center">
       {done ? (
         <PeriResult snapshot={snapshot} />
-      ) : snapshot.countdown != null ? (
-        <span className="peri-digit">{snapshot.countdown}</span>
+      ) : view.countdown != null ? (
+        <span className="peri-digit">{view.countdown}</span>
       ) : (
         <span className={`peri-digit ${cue === "red" ? "cue-red" : "cue-green"}`}>
-          {snapshot.centerDigit ?? ""}
+          {view.centerDigit ?? ""}
         </span>
       )}
     </div>

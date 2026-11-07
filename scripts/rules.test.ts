@@ -135,6 +135,7 @@ async function roomFlow(): Promise<void> {
   room.start();
   const counting = room.snapshot();
   assert(counting.config.running && counting.countdown === 3, "countdown starts at 3");
+  assert(counting.playPackage != null && counting.playPackage.frames.length > 0, "play package is sent at start");
   assert(counting.centerDigit == null, "center has no problem digit during countdown");
   assert(
     counting.displays.every((d) => d.digit == null),

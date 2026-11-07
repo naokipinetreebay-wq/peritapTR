@@ -20,6 +20,25 @@ export interface DisplayInfo {
   connected: boolean;
 }
 
+/** 開始時に一度配り、端末側の時計で再生する出題一式 */
+export interface PlayFrameWire {
+  cue: Cue;
+  center: number;
+  digits: Record<string, number>;
+  scored: boolean;
+}
+
+export interface PlayPackage {
+  intervalMs: number;
+  countdownMs: number;
+  countdownFrom: number;
+  /** カウントダウン「3」を出したサーバ時刻 */
+  countdownStartedAt: number;
+  /** コマ0の開始サーバ時刻 */
+  playStartedAt: number;
+  frames: PlayFrameWire[];
+}
+
 export interface RoomSnapshot {
   code: string;
   config: RoomConfig;
@@ -41,6 +60,8 @@ export interface RoomSnapshot {
   finishedAt: number | null;
   /** 問題開始前の 3・2・1。null のときはカウントダウン中ではない */
   countdown: number | null;
+  /** あるときは端末側再生の正本。カウントダウン開始時に付く */
+  playPackage: PlayPackage | null;
   serverNow: number;
 }
 
