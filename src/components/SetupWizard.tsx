@@ -1,5 +1,7 @@
 "use client";
 
+import { NumberSelect } from "@/components/NumberSelect";
+
 import { QRCodeSVG } from "qrcode.react";
 import { useMemo, useState } from "react";
 import { PlacementMap } from "@/components/PlacementMap";
@@ -108,24 +110,22 @@ export function SetupWizard({
             </label>
             <label className="field">
               <span>切り替え: {cfg.intervalSeconds.toFixed(1)}秒</span>
-              <input
-                type="range"
+              <NumberSelect
                 min={MIN_INTERVAL}
                 max={MAX_INTERVAL}
                 step={0.1}
                 value={cfg.intervalSeconds}
-                onChange={(e) => patch({ intervalSeconds: Number(e.target.value) })}
+                onChange={(n) => patch({ intervalSeconds: n })}
               />
             </label>
             <label className="field">
               <span>制限時間: {cfg.durationSeconds}秒</span>
-              <input
-                type="range"
+              <NumberSelect
                 min={MIN_DURATION}
                 max={MAX_DURATION}
                 step={1}
                 value={cfg.durationSeconds}
-                onChange={(e) => patch({ durationSeconds: Number(e.target.value) })}
+                onChange={(n) => patch({ durationSeconds: n })}
               />
             </label>
             <p className="muted">
