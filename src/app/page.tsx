@@ -1,9 +1,14 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { AdGate } from "@/components/AdGate";
-import { bootstrapSession, type TrBootstrapResponse } from "@/lib/trApi";
+import { ProfileGate } from "@/components/ProfileGate";
+import {
+  bootstrapSession,
+  isProfilePromptDone,
+  type TrBootstrapResponse,
+} from "@/lib/trApi";
 import { createRoom } from "@/lib/ws";
 
 const APP = "peritap";
@@ -13,6 +18,8 @@ export default function HomePage() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [bootstrap, setBootstrap] = useState<TrBootstrapResponse | null>(null);
+  const [needProfile, setNeedProfile] = useState(false);
+  const continueAfterProfile = useRef(false);
 
   const createAndEnter = async () => {
     setBusy(true);
@@ -26,7 +33,7 @@ export default function HomePage() {
     }
   };
 
-  const onStart = async () => {
+  const runBootstrapAndCreate = async () => {
     setBusy(true);
     setError(null);
     try {
@@ -48,6 +55,29 @@ export default function HomePage() {
     }
   };
 
+  const onStart = async () => {
+    if (!isProfilePromptDone()) {
+      continueAfterProfile.current = true;
+      setNeedProfile(true);
+      return;
+    }
+    await runBootstrapAndCreate();
+  };
+
+  if (needProfile) {
+    return (
+      <ProfileGate
+        onDone={() => {
+          setNeedProfile(false);
+          if (continueAfterProfile.current) {
+            continueAfterProfile.current = false;
+            void runBootstrapAndCreate();
+          }
+        }}
+      />
+    );
+  }
+
   if (bootstrap) {
     return (
       <AdGate
@@ -67,7 +97,9 @@ export default function HomePage() {
       <div className="home-card">
         <p className="eyebrow">PeriTap · TRwebapp</p>
         <h1>周辺視タップ</h1>
-        <p>真ん中の数字を見たまま、数字が緑のときだけ同じ数字の端末をタップします。数字が赤なら押しません。</p>
+        <p>
+          真ん中の数字を見たまま、数字が緑のときだけ同じ数字の端末をタップします。数字が赤なら押しません。
+        </p>
         <div className="home-actions">
           <button type="button" className="btn primary" disabled={busy} onClick={() => void onStart()}>
             {busy ? "準備中…" : "ルームを作成"}
