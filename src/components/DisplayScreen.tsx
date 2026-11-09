@@ -4,16 +4,17 @@ import { useEffect, useRef, useState } from "react";
 import { PeriResult } from "@/components/PeriResult";
 import { placementsFor } from "@/lib/placement";
 import { usePlayView } from "@/lib/playView";
-import type { ClientMessage, RoomSnapshot } from "@/lib/types";
+import type { RoomSnapshot } from "@/lib/types";
 
 export function DisplayScreen({
   snapshot,
   deviceId,
-  send,
+  sendGame,
 }: {
   snapshot: RoomSnapshot;
   deviceId: string;
-  send: (msg: ClientMessage) => void;
+  /** DataChannel 優先、なければ WS tap */
+  sendGame: (msg: unknown) => boolean;
 }) {
   const mine = snapshot.displays.find((d) => d.id === deviceId);
   const done = snapshot.finishedAt != null;
@@ -52,7 +53,12 @@ export function DisplayScreen({
     lock.current = now;
     setFlash(true);
     window.setTimeout(() => setFlash(false), 90);
-    send({ type: "tap", deviceId, frameStartedAt: view.frameStartedAt });
+    sendGame({
+      type: "clientEvent",
+      event: "tap",
+      deviceId,
+      frameStartedAt: view.frameStartedAt,
+    });
   };
 
   return (
