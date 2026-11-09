@@ -4,13 +4,22 @@ import { useEffect, useRef, useState } from "react";
 import { CenterScreen } from "@/components/CenterScreen";
 import { ControllerPanel } from "@/components/ControllerPanel";
 import { SetupWizard } from "@/components/SetupWizard";
+import { usePeriLocalHost, type PeriClientEvent } from "@/lib/localHost";
 import { useRoomCode } from "@/lib/roomCode";
 import { useDeviceId, useRoomSocket } from "@/lib/ws";
 
 export default function ControllerPage() {
   const code = useRoomCode();
   const deviceId = useDeviceId(`controller-${code}`);
-  const { snapshot, error, connected, send } = useRoomSocket(code, "controller", deviceId);
+  const onClientEventRef = useRef<(ev: PeriClientEvent) => void>(() => undefined);
+  const { snapshot, error, connected, send } = useRoomSocket(
+    code,
+    "controller",
+    deviceId,
+    (ev) => onClientEventRef.current(ev)
+  );
+  const { startLocal, stopLocal, onClientEvent } = usePeriLocalHost(snapshot, send);
+  onClientEventRef.current = onClientEvent;
 
   const wizardKey = `pt-wizard-done-${code}`;
   const [ready, setReady] = useState(false);
@@ -28,8 +37,8 @@ export default function ControllerPage() {
     const online = snapshot.displays.filter((d) => d.connected).length;
     if (!connected || online < 2) return;
     pendingStart.current = false;
-    send({ type: "start" });
-  }, [connected, ready, send, snapshot]);
+    startLocal();
+  }, [connected, ready, snapshot, startLocal]);
 
   if (error && !snapshot) {
     return (
@@ -86,7 +95,11 @@ export default function ControllerPage() {
         connected={connected}
         send={send}
         clearSessionKeys={[wizardKey]}
-        onStart={() => setView("center")}
+        onStart={() => {
+          setView("center");
+          startLocal();
+        }}
+        onStop={stopLocal}
       />
       <div className="controller" style={{ paddingTop: 0, gap: 10 }}>
         {snapshot.config.running || snapshot.finishedAt != null ? (

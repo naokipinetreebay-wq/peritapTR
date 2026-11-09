@@ -65,19 +65,46 @@ export interface RoomSnapshot {
   serverNow: number;
 }
 
+export type HostPushOverlay = {
+  playPackage?: PlayPackage | null;
+  correct?: number;
+  wrong?: number;
+  miss?: number;
+  asked?: number;
+  startedAt?: number | null;
+  endsAt?: number | null;
+  finishedAt?: number | null;
+  countdown?: number | null;
+  cue?: Cue | null;
+  centerDigit?: number | null;
+  scored?: boolean;
+  frameStartedAt?: number | null;
+  digits?: Record<string, number>;
+  hostNow?: number;
+};
+
 export type ClientMessage =
   | { type: "hello"; role: Role; deviceId: string; label?: string }
   | { type: "updateConfig"; config: Partial<RoomConfig> }
   | { type: "setLabel"; deviceId: string; label: string }
-  | { type: "start" }
+  | { type: "start"; local?: boolean }
   | { type: "stop" }
+  | { type: "hostPush"; overlay: HostPushOverlay }
   | { type: "tap"; deviceId: string; frameStartedAt?: number | null }
   | { type: "ping" };
+
+export type ClientEventMessage = {
+  type: "clientEvent";
+  event: "tap";
+  deviceId: string;
+  frameStartedAt?: number | null;
+};
 
 export type ServerMessage =
   | { type: "snapshot"; snapshot: RoomSnapshot }
   | { type: "error"; message: string }
-  | { type: "pong" };
+  | { type: "pong" }
+  | ClientEventMessage;
 
 export const DEFAULT_CONFIG: RoomConfig = {
   level: "easy",

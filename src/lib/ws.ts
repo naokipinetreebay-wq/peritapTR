@@ -29,11 +29,18 @@ export function useDeviceId(key: string): string {
   return id;
 }
 
-export function useRoomSocket(room: string, role: Role, deviceId: string) {
+export function useRoomSocket(
+  room: string,
+  role: Role,
+  deviceId: string,
+  onClientEvent?: (msg: Extract<ServerMessage, { type: "clientEvent" }>) => void
+) {
   const [snapshot, setSnapshot] = useState<RoomSnapshot | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [connected, setConnected] = useState(false);
   const wsRef = useRef<WebSocket | null>(null);
+  const onClientEventRef = useRef(onClientEvent);
+  onClientEventRef.current = onClientEvent;
 
   useEffect(() => {
     if (!room || !deviceId) return;
@@ -98,6 +105,7 @@ export function useRoomSocket(room: string, role: Role, deviceId: string) {
         if (msg.type === "snapshot") setSnapshot(msg.snapshot);
         if (msg.type === "error") setError(msg.message);
         if (msg.type === "pong") setError(null);
+        if (msg.type === "clientEvent") onClientEventRef.current?.(msg);
       };
     };
 
